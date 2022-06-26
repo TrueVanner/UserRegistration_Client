@@ -1,8 +1,8 @@
-import { InputAdornment, MenuItem, Stack, TextField, Button, Paper, FormControl, Typography} from '@mui/material';
+import { InputAdornment, MenuItem, Stack, TextField, Button, Paper } from '@mui/material';
 import { LoadingButton } from "@mui/lab"
 import SendIcon from '@mui/icons-material/Send';
 import { styled } from '@mui/material/styles';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import '@fontsource/roboto/500.css';
 
 const Input = styled('input')({
@@ -15,7 +15,7 @@ const SuccessText = styled('div')(({ theme }) => ({
 	color: "green",
 }));
 
-function AddingForm(props) {
+function AddingForm() {
 	const [pos, setPos] = useState("")
 	const [image, setImage] = useState();
 	const [sending, setSending] = useState(false)
@@ -27,11 +27,11 @@ function AddingForm(props) {
 	});
  
 	const [errors, setErrors] = useState({
-		name: {err: false, help: ""},
-		email: {err: false, help: ""},
-		phone: {err: false, help: ""},
-		position: {err: false, help: ""},
-		image_name: {err: false}
+		name: "",
+		email: "",
+		phone: "",
+		position: "",
+		image_name: ""
 	})
 
 	const [allPos, setAllPos] = useState([-1]);
@@ -43,7 +43,7 @@ function AddingForm(props) {
 	}
 
 	const fetchPositions = async () => {
-		if (allPos[0] === -1) {
+		if (allPos[0] === -1 || allPos.length === 0) {
 			const names = [];
 
 			const data = await fetch("http://localhost:8081/api/v1/positions", {
@@ -67,7 +67,7 @@ function AddingForm(props) {
 		const formData = new FormData();
 		formData.append("name", userData.name)
 		formData.append("email", userData.email)
-		formData.append("phone", userData.phone.slice(0, 13))
+		formData.append("phone", "+380" + userData.phone.slice(0, 9))
 		formData.append("position", pos)
 		formData.append("image", image)
 
@@ -77,29 +77,21 @@ function AddingForm(props) {
 			body: formData
 		}).then(res => res.json());
 
-		if (!data.success) {
-			const newErrors = {
-				name: {err: false, help: ""},
-				email: {err: false, help: ""},
-				phone: {err: false, help: ""},
-				position: {err: false, help: ""},
-				image_name: {err: false}
-			}
-			data.fails.forEach(fail => {
-				newErrors[fail.param] = {err: true, help: fail.msg}
-			})
-			setErrors(newErrors)
-		} else 
-		{
-			setErrors({
-				name: {err: false, help: ""},
-				email: {err: false, help: ""},
-				phone: {err: false, help: ""},
-				position: {err: false, help: ""},
-				image_name: {err: false}
-			})
-			setSuccess(true)
+
+		const newErrors = {
+			name: "",
+			email: "",
+			phone: "",
+			position: "",
+			image_name: ""
 		}
+		if (!data.success) {
+			data.fails.forEach(fail => {
+				newErrors[fail.param] = fail.msg
+			})
+		} else setSuccess(true)
+
+		setErrors(newErrors)
 		setSending(false);
 	}
 
@@ -111,37 +103,40 @@ function AddingForm(props) {
 					justifyContent="center"
 					alignItems="center"
 					spacing={2}>
-
+					
 					<TextField
 						required
 						label="Name"
 						sx={{ m: 1, width: '35ch' }}
-						error={errors.name.err}
-						helperText={errors.name.help}
+						error={!!errors.name}
+						helperText={errors.name}
 						value={userData.name}
 						color={success ? "success" : "primary"}
 						focused={success}
 						onChange={event => changeUserData("name", event.target.value)}/>
+
 					<TextField
 						required
 						label="Email"
 						sx={{ m: 1, width: '35ch' }}
-						error={errors.email.err}
-						helperText={errors.email.help}
+						error={!!errors.email}
+						helperText={errors.email}
 						value={userData.email}
 						color={success ? "success" : "primary"}
 						focused={success}
-						onChange={event => changeUserData("email", event.target.value)}/>
+						onChange={event => changeUserData("email", event.target.value)}
+						/>
+
 					<TextField
 						required
 						label="Phone number"
 						sx={{ m: 1, width: '35ch' }}
-						error={errors.phone.err}
-						helperText={errors.phone.help}
-						value={userData.phone.slice(4, 13)} // ограничивает максимальный размер номера и не показывает встроенные +380
+						error={!!errors.phone}
+						helperText={errors.phone}
+						value={userData.phone.slice(0, 9)} // ограничивает максимальный размер номера
 						color={success ? "success" : "primary"}
 						focused={success}
-						onChange={event => changeUserData("phone", "+380"+event.target.value)} // сразу добавляет номер с +380
+						onChange={event => changeUserData("phone", event.target.value)}
 						InputProps={{
 							startAdornment: <InputAdornment position="start">+380</InputAdornment>,
 						}}/>
@@ -151,8 +146,8 @@ function AddingForm(props) {
 						select
 						label="Position"
 						sx={{ m: 1, width: '35ch' }}
-						error={errors.position.err}
-						helperText={errors.position.help}
+						error={!!errors.position}
+						helperText={errors.position}
 						value={pos}
 						color={success ? "success" : "primary"}
 						focused={success}
@@ -160,36 +155,40 @@ function AddingForm(props) {
 						onMouseEnter={fetchPositions}>
 
 						{allPos.map(option => {
-							if (option === -1) return (<MenuItem key={"loading"} disabled={true}>Loading...</MenuItem>);
-							return <MenuItem key={option} value={option}>
-							{option}
-							</MenuItem>
-						})}
-						</TextField>
-						<label htmlFor="file">
+								if (option === -1) return (<MenuItem key={"loading"} disabled={true}>Loading...</MenuItem>);
+								return <MenuItem key={option} value={option}>
+								{option}
+								</MenuItem>
+							})
+						}
+					</TextField>
+					
+					<label htmlFor="file">
 						<Input
-						id="file"
-						accept="image/jpeg"
-						type="file"
-						onChange={event => setImage(event.target.files[0])}
-						/>
+							id="file"
+							accept="image/jpeg"
+							type="file"
+							onChange={event => setImage(event.target.files[0])}/>
+							
 						<Button
-						color={errors.image_name.err ? "error" : success ? "success" : "primary"}
-						variant={image ? "contained" : "outlined"}
-						component="span">
-							Upload image
+							color={!!errors.image_name ? "error" : success ? "success" : "primary"}
+							variant={image ? "contained" : "outlined"}
+							component="span">
+								Upload image
 						</Button>
-						</label>
-						<LoadingButton
-							onClick={sendForm}
-							endIcon={<SendIcon/>}
-							loading={sending}
-							color={success ? "success" : "primary"}
-							variant="outlined"
-							loadingPosition="end">
+					</label>
+
+					<LoadingButton
+						onClick={sendForm}
+						endIcon={<SendIcon/>}
+						loading={sending}
+						color={success ? "success" : "primary"}
+						variant="outlined"
+						loadingPosition="end">
 							Send
-						</LoadingButton>
-						<SuccessText>{success ? "user added successfully!" : ""}</SuccessText>
+					</LoadingButton>
+
+					<SuccessText>{success ? "user added successfully!" : ""}</SuccessText>
 				</Stack>
 			</Paper>
 		</div>
