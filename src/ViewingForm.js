@@ -1,3 +1,4 @@
+/* eslint-disable eqeqeq */
 import { Button, Grid, Paper, Stack, TextField } from "@mui/material"
 import UserCard from "./UserCard"
 import { useState } from 'react';
